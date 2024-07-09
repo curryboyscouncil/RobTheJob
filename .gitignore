@@ -22,7 +22,7 @@ test_db/
 *.sublime-project
 *.sublime-workspace
 media/*
-static/*
+output/*
 config/
 .idea/
 venv/
