@@ -1,66 +1,54 @@
 from django.shortcuts import render, redirect, render
 from django.template.loader import render_to_string
 from django.http import HttpResponse, HttpResponseNotFound
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.request import Request
+from rest_framework import status
 import yaml
 from groq import Groq
 import json
 import re
+from django.views.decorators.cache import cache_page
+from django.core.cache import cache
+from django_ratelimit.decorators import ratelimit
 
 from llm.utils.resume import generate_resume
 from llm.utils.llama import llama_call
 
 # Create your views here.
 
-def home_page(request):
-    if request.method == 'POST':
-        yaml_data = request.POST.get('yaml_data')
-        # Instead of storing in session, pass directly to process_data
-        return redirect('process_data', yaml_data=yaml_data)
+cache_timeout = 60 * 60 * 15
 
-    return render(request, 'website/index.html', {})
+@api_view(['GET'])
+@ratelimit(key='ip', rate='100/h')
+@cache_page(cache_timeout)
+def api_overview(request: Request):
+    api_urls = {
+        'API documentation': 'GET /swagger',
+    }
 
-def download_yaml(request):
-    yaml_data = request.form['yaml_data']
-    response = HttpResponse(yaml_data, mimetype='text/yaml')
-    response.headers['Content-Disposition'] = 'attachment; filename="submitted_data.yaml"'
-    return response
+    return Response(api_urls)
 
-def process_data(request):
-    if request.method == 'POST':
-        jd = request.form['jd']
-        yaml_data = request.form['yaml_data']
-        # Pass JD and YAML data to final_page via URL parameters or by posting directly to the endpoint handling final_page
-        return redirect('final_page', jd=jd, yaml_data=yaml_data)
+@api_view(['POST'])
+@ratelimit(key='ip', rate='5/h')
+def send_profile(request: Request):
+    cv = request.data['cv_yaml']
+    jd = request.data['jd']
 
-    # Check if YAML data exists in request arguments and display form for entering JD
-    yaml_data = request.args.get('yaml_data', '')
-    if yaml_data == '':
-        # If no YAML data is available, redirect to start to ensure flow integrity
-        return redirect('index')
+    response, ct = llama_call(data=cv, jd=jd)
 
-    # Render a form that includes the YAML data as a hidden field
-    return render(request, 'website/process_data.html', dict(yaml_data))
+    res = {'cv': cv, 'jd':jd,'ct':ct, 'response': response}
 
-def final_page(request):
-    # Extract data from query parameters instead of the session
-    yaml_data = request.args.get('yaml_data', '')
-    jd = request.args.get('jd', '')
+    return Response(res)
 
-    # Simulate a function call that processes this data
-    response, ct = llama_call(data=yaml_data, jd=jd)
-
-    request.session["LLM"]=response
-
-    context = {'yaml_data': yaml_data, 'jd':jd,'ct':ct}
-
-    return render(request, 'website/final_page.html', context)
-
-def download_resume(request):
-    resume_data = request.session.get("LLM")  # Example session data, replace with actual data
+@api_view(['GET'])
+@ratelimit(key='ip', rate='50/h')
+@cache_page(cache_timeout)
+def download_resume(request: Request):
+    resume_data = request.query_params.get("user")  # Example session data, replace with actual data
     if not resume_data:
-        return HttpResponseNotFound("No resume data found!")
+        return Response("No resume data found!", status=status.HTTP_204_NO_CONTENT)
     pdf_path = generate_resume(resume_data)
     filename = (pdf_path.split("/")[-1]).split(".")[0]
-    response = HttpResponse(open(f"output/{filename}.pdf"), content_type="application/json")
-    response['Content-Disposition'] = 'attachment; filename="downloaded_file.json"'
-    return response
+    return Response({'path': f"/media/{filename}.pdf"})

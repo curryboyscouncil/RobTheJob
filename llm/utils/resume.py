@@ -21,7 +21,7 @@ def generate_resume(resume):
     print(type(rendered_resume))
     filen = resume['name']
     
-    output_folder = "output"
+    output_folder = "media"
     output_filename = f"{filen}_resume.tex"
     output_path = os.path.join(output_folder, output_filename)
     with open(output_path, "w") as fout:
