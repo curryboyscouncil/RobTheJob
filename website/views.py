@@ -62,9 +62,8 @@ def send_profile(request: Request):
 def download_resume(request: Request):
     resume_id = request.query_params.get("r_id")  # Example session data, replace with actual data
 
-
-    if not resume_data:
+    if not resume_id:
         return Response("No resume data found!", status=status.HTTP_204_NO_CONTENT)
-    pdf_path = generate_resume(resume_data)
+    pdf_path = generate_resume(resume_id)
     filename = (pdf_path.split("/")[-1]).split(".")[0]
     return Response({'path': f"/media/{filename}.tex"})
