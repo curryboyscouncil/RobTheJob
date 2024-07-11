@@ -1,6 +1,7 @@
 from jinja2 import Environment, FileSystemLoader
 import os
 import subprocess
+import json
 
 def generate_resume(resume):
     env = Environment(
@@ -14,6 +15,9 @@ def generate_resume(resume):
         lstrip_blocks=True,
         loader=FileSystemLoader(searchpath="./"),
     )
+
+    resume = json.loads(resume)
+
     template = env.get_template("resume_template.latex")
     rendered_resume = template.render(resume)
     rendered_resume = rendered_resume.replace("%", "\%")
@@ -26,5 +30,5 @@ def generate_resume(resume):
     output_path = os.path.join(output_folder, output_filename)
     with open(output_path, "w") as fout:
         fout.write(rendered_resume)
-    # subprocess.run(["pdflatex", f"{filen}_resume.tex"],cwd="./output")
+    # subprocess.run(["pdflatex", f"{filen}_resume.tex"],cwd="./media")
     return output_path

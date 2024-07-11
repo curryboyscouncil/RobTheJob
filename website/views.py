@@ -15,6 +15,8 @@ from django_ratelimit.decorators import ratelimit
 
 from llm.utils.resume import generate_resume
 from llm.utils.llama import llama_call
+from .serializers import ResumeSerializer
+from .DTOs import ResumeDTO
 
 # Create your views here.
 
@@ -31,24 +33,38 @@ def api_overview(request: Request):
     return Response(api_urls)
 
 @api_view(['POST'])
-@ratelimit(key='ip', rate='5/h')
+# @ratelimit(key='ip', rate='5/h')
 def send_profile(request: Request):
     cv = request.data['cv_yaml']
     jd = request.data['jd']
 
     response, ct = llama_call(data=cv, jd=jd)
 
-    res = {'cv': cv, 'jd':jd,'ct':ct, 'response': response}
+    res = {'cv': cv, 'jd': jd, 'resume_text': json.dumps(response)}
+    # print(res)
+    resume_serializer = ResumeSerializer(data=res)
+
+    if resume_serializer.is_valid():
+        r = resume_serializer.save()
+    else:
+        print(resume_serializer.errors)
+        return Response("Error in saving the resume", status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    res['resume_text'] = response
+    res['ct'] = ct,
+    res['r_id'] = r.id
 
     return Response(res)
 
 @api_view(['GET'])
-@ratelimit(key='ip', rate='50/h')
+@ratelimit(key='get:r_id', rate='50/h')
 @cache_page(cache_timeout)
 def download_resume(request: Request):
-    resume_data = request.query_params.get("user")  # Example session data, replace with actual data
+    resume_id = request.query_params.get("r_id")  # Example session data, replace with actual data
+
+
     if not resume_data:
         return Response("No resume data found!", status=status.HTTP_204_NO_CONTENT)
     pdf_path = generate_resume(resume_data)
     filename = (pdf_path.split("/")[-1]).split(".")[0]
-    return Response({'path': f"/media/{filename}.pdf"})
+    return Response({'path': f"/media/{filename}.tex"})

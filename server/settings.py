@@ -181,8 +181,10 @@ CACHES = {
         'OPTIONS': {
             'MAX_ENTRIES': 1000
         }
-    }
+    },
 }
+
+RATELIMIT_USE_CACHE = 'default'
 
 APPEND_SLASH = True
 
