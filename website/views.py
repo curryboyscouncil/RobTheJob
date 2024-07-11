@@ -13,16 +13,9 @@ from llm.utils.llama import llama_call
 
 def home_page(request):
     if request.method == 'POST':
-        if 'yaml_data' in request.form:
-            yaml_data = request.form['yaml_data']
-            # Instead of storing in session, pass directly to process_data
-            return redirect('process_data', yaml_data=yaml_data)
-        elif 'file' in request.files:
-            file = request.files['file']
-            yaml_data = yaml.safe_load(file.stream)
-            # Convert YAML data to a string format that can be passed via URL (careful with size and encoding)
-            yaml_data_str = str(yaml_data)
-            return redirect('process_data', yaml_data=yaml_data_str)
+        yaml_data = request.POST.get('yaml_data')
+        # Instead of storing in session, pass directly to process_data
+        return redirect('process_data', yaml_data=yaml_data)
 
     return render(request, 'website/index.html', {})
 

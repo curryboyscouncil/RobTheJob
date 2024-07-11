@@ -3,6 +3,7 @@
 <body>
   <h2>Enter Job Description</h2>
   <form action="/process_data" method="post">
+    {% csrf_token %}
     <textarea name="jd" cols="100" rows="10"></textarea><br>
     <input type="hidden" name="yaml_data" value="{{ yaml_data }}">
     <button type="submit">Submit JD</button>

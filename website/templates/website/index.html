@@ -3,11 +3,13 @@
 <body>
     <h2>Enter Your YAML Data</h2>
     <form action="/" method="post">
+        {% csrf_token %}
         <textarea name="yaml_data" cols="100" rows="20"></textarea><br>
         <input type="submit" value="Submit">
     </form>
     <h2>Or Upload a YAML File</h2>
     <form action="/" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
         <input type="file" name="file">
         <input type="submit" value="Read">
     </form>
